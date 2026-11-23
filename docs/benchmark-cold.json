@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-11-23T14:59:22",
+  "base_url": "http://127.0.0.1:8000",
+  "kb_id": "19ba2e1cec11429c84ae890dcab0d9d1",
+  "rounds": 3,
+  "cache_disabled": true,
+  "cold": {
+    "count": 3,
+    "ttft_p50_ms": 2400.5,
+    "ttft_p95_ms": 3277.3,
+    "total_p50_ms": 3457.8,
+    "total_p95_ms": 4721.5
+  },
+  "warm": {
+    "count": 0,
+    "ttft_p50_ms": 0.0,
+    "total_p50_ms": 0.0
+  },
+  "burst": {
+    "concurrency": 3,
+    "success": 3,
+    "errors": [],
+    "wall_ms": 3314.2,
+    "qps": 0.91,
+    "ttft_p50_ms": 1942.1
+  },
+  "sequential": [
+    {
+      "ttft_ms": 3277.3,
+      "total_ms": 4721.5,
+      "chars": 93,
+      "citations": 4,
+      "from_cache": false,
+      "question": "星耀 X50 支持卫星通信吗？保修多久？"
+    },
+    {
+      "ttft_ms": 2400.5,
+      "total_ms": 3457.8,
+      "chars": 51,
+      "citations": 4,
+      "from_cache": false,
+      "question": "云帆 Pro 14 的屏幕刷新率和色域是多少？"
+    },
+    {
+      "ttft_ms": 1732.5,
+      "total_ms": 2149.3,
+      "chars": 25,
+      "citations": 4,
+      "from_cache": false,
+      "question": "静界 Air 的降噪深度是多少分贝？"
+    }
+  ]
+}

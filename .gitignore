@@ -26,3 +26,7 @@ backend/.pytest-work/
 .coverage
 coverage.xml
 htmlcov/
+
+# ÔËÐÐÆÚ»º´æ
+jieba.cache
+*.cache

@@ -15,6 +15,7 @@ from .config import settings
 from .db import SessionLocal, close_db, init_db
 from .llm import close_llm
 from .models import User
+from .observability import RequestContextMiddleware
 from .security import hash_password
 
 logging.basicConfig(
@@ -61,7 +62,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN201
 app = FastAPI(
     title=settings.app_name,
     description="基于 LangChain + 千问的电商知识库 RAG 问答系统",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
@@ -79,6 +80,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 放在 CORS 之后注册：Starlette 的中间件是倒序包裹的，后注册的更靠外层，
+# 这样静态资源与错误响应也能带上 X-Request-ID。
+app.add_middleware(RequestContextMiddleware)
 
 app.include_router(auth.router)
 app.include_router(kbs.router)

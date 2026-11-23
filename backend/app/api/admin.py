@@ -20,6 +20,7 @@ from ..models import (
     Message,
     User,
 )
+from ..observability import metrics
 from ..schemas import AdminStats, UserAdminOut, UserUpdateIn
 from ..services.cache import cache_service
 
@@ -211,3 +212,9 @@ async def llm_calls(
 @router.get("/cache", summary="缓存状态")
 async def cache_status(admin: User = Depends(require_admin)) -> dict:
     return cache_service.stats()
+
+
+@router.get("/metrics", summary="运行时指标")
+async def runtime_metrics(admin: User = Depends(require_admin)) -> dict:
+    """返回进程内最近 2000 次请求的延迟分位、错误率与热点路径。"""
+    return metrics.snapshot()

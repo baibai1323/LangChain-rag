@@ -37,6 +37,7 @@ from ..services.chat import (
     usage_dict,
 )
 from ..services.ratelimit import chat_limiter
+from ..services.singleflight import embedding_flight, retrieval_flight
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/chat", tags=["问答"])
@@ -149,7 +150,10 @@ async def chat_stream(
             embedding: list[float] | None = None
             cached = exact
             if cached is None:
-                embedding = await embed_query(question)
+                # 并发合并：同一句问题只打一次 Embedding，后来者等同一个结果
+                embedding = await embedding_flight.run(
+                    f"embed:{kb_id}:{question}", lambda: embed_query(question)
+                )
                 if data.use_cache:
                     semantic = cache_service.get_semantic(kb_id, embedding)
                     if semantic:
@@ -175,9 +179,18 @@ async def chat_stream(
                     raise asyncio.CancelledError
 
                 yield sse("status", {"stage": "retrieval", "message": "正在检索知识库…"})
-                # 生成器在响应返回后才执行，不能再复用请求作用域的 session
-                async with SessionLocal() as sdb:
-                    hits = await retrieve(sdb, kb_id, rewritten, query_embedding=embedding)
+
+                async def _do_retrieve():  # noqa: ANN202 - 返回 list[RetrievedChunk]
+                    # 共享任务不能用请求作用域的 session，必须自己开一个短会话
+                    async with SessionLocal() as sdb:
+                        return await retrieve(
+                            sdb, kb_id, rewritten, query_embedding=embedding
+                        )
+
+                # 同一知识库、同一（改写后）问题的并发检索只执行一次
+                hits = await retrieval_flight.run(
+                    f"retrieve:{kb_id}:{rewritten}", _do_retrieve
+                )
                 context, selected = build_context(hits)
                 citations = [
                     {

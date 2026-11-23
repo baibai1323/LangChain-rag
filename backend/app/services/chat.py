@@ -13,6 +13,17 @@ from ..rag.prompt import REWRITE_PROMPT, TITLE_PROMPT
 
 logger = logging.getLogger(__name__)
 
+# 改写是「锦上添花」：一旦 qwen-turbo 被限流，冷却 60 秒内直接用原问题，
+# 避免每一轮都先交 3 秒重试学费，首字延迟可以稳定下来。
+REWRITE_COOLDOWN_S = 60.0
+_rewrite_blocked_until = 0.0
+
+
+def reset_rewrite_cooldown() -> None:
+    """清空改写冷却，测试和长连接复用场景用。"""
+    global _rewrite_blocked_until
+    _rewrite_blocked_until = 0.0
+
 
 async def load_history(db: AsyncSession, conversation_id: str, limit: int = 8) -> list[dict[str, str]]:
     rows = (
@@ -28,8 +39,14 @@ async def load_history(db: AsyncSession, conversation_id: str, limit: int = 8) -
 
 
 async def rewrite_question(question: str, history: list[dict[str, str]]) -> str:
+    global _rewrite_blocked_until
+
     if not history:
         return question
+    # 上一轮刚被限流：直接跳过，别让每个请求都先等一轮重试
+    if time.monotonic() < _rewrite_blocked_until:
+        return question
+
     snippet = "\n".join(f"{m['role']}: {m['content'][:200]}" for m in history[-4:])
     try:
         rewritten, _ = await fast_chat(
@@ -38,11 +55,16 @@ async def rewrite_question(question: str, history: list[dict[str, str]]) -> str:
                 {"role": "user", "content": f"对话历史：\n{snippet}\n\n最新问题：{question}"},
             ],
             max_tokens=128,
+            attempts=1,
+            timeout_s=3.0,
         )
         rewritten = rewritten.strip().strip('"').strip("“”")
         return rewritten if 2 <= len(rewritten) <= 200 else question
     except Exception as exc:  # noqa: BLE001  改写失败时使用原问题
-        logger.warning("查询改写失败，使用原问题: %s", exc)
+        _rewrite_blocked_until = time.monotonic() + REWRITE_COOLDOWN_S
+        logger.warning(
+            "查询改写失败，%ss 内跳过改写并使用原问题: %s", int(REWRITE_COOLDOWN_S), exc
+        )
         return question
 
 
@@ -55,6 +77,8 @@ async def make_title(question: str) -> str:
                 {"role": "user", "content": question[:300]},
             ],
             max_tokens=32,
+            attempts=1,
+            timeout_s=2.5,
         )
         title = title.strip().strip('"').strip("“”").replace("\n", " ")
         return title[:20] or fallback

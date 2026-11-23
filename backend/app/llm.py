@@ -23,11 +23,13 @@ EMBED_BATCH = 10
 def _openai() -> AsyncOpenAI:
     global _client
     if _client is None:
+        # 重试统一交给 _with_retry 管：SDK 自己再重试会叠加成「4 次调用 × 3 次内部重试」，
+        # 遇到 429 时首字会被拖到十几秒（实测），所以这里只保留 1 次。
         _client = AsyncOpenAI(
             api_key=settings.dashscope_api_key,
             base_url=settings.dashscope_base_url,
             timeout=httpx.Timeout(120.0, connect=10.0),
-            max_retries=2,
+            max_retries=1,
         )
     return _client
 
@@ -58,11 +60,18 @@ def get_chat_model(streaming: bool = True, temperature: float = 0.2, model: str 
         streaming=streaming,
         stream_usage=True,
         timeout=120,
-        max_retries=2,
+        max_retries=1,
     )
 
 
-async def _with_retry(coro_factory, attempts: int = 4, base_delay: float = 0.8):  # noqa: ANN001
+async def _with_retry(
+    coro_factory,  # noqa: ANN001
+    attempts: int = 4,
+    base_delay: float = 0.8,
+    deadline: float | None = None,
+):
+    """带指数退避的重试；`deadline` 是总预算（秒），超预算立即抛出，避免拖死首字。"""
+    started = time.monotonic()
     last: Exception | None = None
     for i in range(attempts):
         try:
@@ -70,8 +79,18 @@ async def _with_retry(coro_factory, attempts: int = 4, base_delay: float = 0.8):
         except Exception as exc:  # noqa: BLE001
             last = exc
             logger.warning("qwen call failed (attempt %s/%s): %s", i + 1, attempts, exc)
+            elapsed = time.monotonic() - started
+            if deadline is not None and elapsed >= deadline:
+                break
             if i < attempts - 1:
-                await asyncio.sleep(base_delay * (2**i))
+                delay = base_delay * (2**i)
+                if deadline is not None:
+                    remaining = deadline - elapsed
+                    # 连一次退避都放不下就别再试了，直接把错误抛给调用方降级
+                    if delay >= remaining:
+                        break
+                    delay = min(delay, remaining)
+                await asyncio.sleep(delay)
     assert last is not None
     raise last
 
@@ -135,7 +154,15 @@ async def fast_chat(
     model: str | None = None,
     temperature: float = 0.1,
     max_tokens: int = 256,
+    attempts: int = 2,
+    timeout_s: float = 4.0,
 ) -> tuple[str, dict[str, int]]:
+    """非流式的小任务（改写、标题）。
+
+    默认只给 4 秒预算、2 次尝试：这类调用失败完全可以降级（用原问题），
+    不值得为了它把用户的首字延迟拖到十几秒。
+    """
+
     async def call():
         return await _openai().chat.completions.create(
             model=model or settings.qwen_fast_model,
@@ -144,7 +171,10 @@ async def fast_chat(
             max_tokens=max_tokens,
         )
 
-    resp = await _with_retry(call)
+    async with asyncio.timeout(timeout_s):
+        resp = await _with_retry(
+            call, attempts=attempts, base_delay=0.3, deadline=timeout_s
+        )
     usage = {
         "prompt_tokens": resp.usage.prompt_tokens if resp.usage else 0,
         "completion_tokens": resp.usage.completion_tokens if resp.usage else 0,

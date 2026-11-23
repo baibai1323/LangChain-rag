@@ -1,0 +1,76 @@
+{
+  "generated_at": "2026-11-23T14:57:26",
+  "base_url": "http://127.0.0.1:8000",
+  "kb_id": "19ba2e1cec11429c84ae890dcab0d9d1",
+  "rounds": 6,
+  "cold": {
+    "count": 0,
+    "ttft_p50_ms": 0.0,
+    "ttft_p95_ms": 0.0,
+    "total_p50_ms": 0.0,
+    "total_p95_ms": 0.0
+  },
+  "warm": {
+    "count": 6,
+    "ttft_p50_ms": 14.7,
+    "total_p50_ms": 63.0
+  },
+  "burst": {
+    "concurrency": 5,
+    "success": 5,
+    "errors": [],
+    "wall_ms": 183.9,
+    "qps": 27.19,
+    "ttft_p50_ms": 103.3
+  },
+  "sequential": [
+    {
+      "ttft_ms": 24.9,
+      "total_ms": 109.5,
+      "chars": 98,
+      "citations": 4,
+      "from_cache": true,
+      "question": "星耀 X50 支持卫星通信吗？保修多久？"
+    },
+    {
+      "ttft_ms": 14.0,
+      "total_ms": 63.0,
+      "chars": 64,
+      "citations": 4,
+      "from_cache": true,
+      "question": "云帆 Pro 14 的屏幕刷新率和色域是多少？"
+    },
+    {
+      "ttft_ms": 14.8,
+      "total_ms": 48.5,
+      "chars": 25,
+      "citations": 4,
+      "from_cache": true,
+      "question": "静界 Air 的降噪深度是多少分贝？"
+    },
+    {
+      "ttft_ms": 15.1,
+      "total_ms": 96.4,
+      "chars": 112,
+      "citations": 4,
+      "from_cache": true,
+      "question": "这款手机多少钱？有学生优惠吗？"
+    },
+    {
+      "ttft_ms": 14.7,
+      "total_ms": 63.0,
+      "chars": 49,
+      "citations": 3,
+      "from_cache": true,
+      "question": "通勤双肩包能装下 16 英寸笔记本吗？下雨天防水吗？"
+    },
+    {
+      "ttft_ms": 13.8,
+      "total_ms": 49.5,
+      "chars": 48,
+      "citations": 1,
+      "from_cache": true,
+      "question": "轻岚风衣的面料成分是什么？怎么洗涤？"
+    }
+  ]
+}
