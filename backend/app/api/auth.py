@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import settings
 from ..db import get_db
 from ..deps import get_current_user
 from ..models import AuditLog, User, utcnow
@@ -20,8 +21,8 @@ from ..security import (
     create_access_token,
     create_refresh_token,
     decode_token,
-    hash_password,
-    verify_password,
+    hash_password_async,
+    verify_password_async,
 )
 from ..services.ratelimit import auth_limiter
 
@@ -29,9 +30,11 @@ router = APIRouter(prefix="/api/auth", tags=["认证"])
 
 
 def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    """取客户端 IP：默认不信任 X-Forwarded-For，避免客户端伪造 IP 绕过限流。"""
+    if settings.trust_proxy_headers:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
 
@@ -54,7 +57,11 @@ async def register(data: RegisterIn, request: Request, db: AsyncSession = Depend
     auth_limiter.check(_client_ip(request))
     if await _find_user(db, data.username):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="用户名已被注册")
-    user = User(username=data.username.strip(), password_hash=hash_password(data.password), role="user")
+    user = User(
+        username=data.username.strip(),
+        password_hash=await hash_password_async(data.password),
+        role="user",
+    )
     db.add(user)
     db.add(
         AuditLog(
@@ -74,7 +81,7 @@ async def register(data: RegisterIn, request: Request, db: AsyncSession = Depend
 async def login(data: LoginIn, request: Request, db: AsyncSession = Depends(get_db)) -> TokenOut:
     auth_limiter.check(_client_ip(request))
     user = await _find_user(db, data.username)
-    if user is None or not verify_password(user.password_hash, data.password):
+    if user is None or not await verify_password_async(user.password_hash, data.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户名或密码错误")
     if user.status != "active":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用，请联系管理员")
@@ -125,11 +132,11 @@ async def change_password(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> TokenOut:
-    if not verify_password(user.password_hash, data.old_password):
+    if not await verify_password_async(user.password_hash, data.old_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="原密码不正确")
     if data.old_password == data.new_password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="新密码不能与原密码相同")
-    user.password_hash = hash_password(data.new_password)
+    user.password_hash = await hash_password_async(data.new_password)
     user.token_version += 1
     db.add(
         AuditLog(

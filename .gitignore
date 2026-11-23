@@ -30,3 +30,6 @@ htmlcov/
 # ÔËÐÐÆÚ»º´æ
 jieba.cache
 *.cache
+
+.loadtest/
+

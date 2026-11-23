@@ -32,6 +32,13 @@ async def test_rewrite_skips_llm_without_history(monkeypatch: pytest.MonkeyPatch
     assert called is False
 
 
+def test_needs_rewrite_only_for_context_dependent_questions() -> None:
+    """自包含的长问题不该再花一次模型调用。"""
+    assert chat_service.needs_rewrite("云帆 Pro 14 的屏幕参数和电池续航怎么样？") is False
+    assert chat_service.needs_rewrite("它的保修期多久？") is True
+    assert chat_service.needs_rewrite("多少钱") is True
+
+
 @pytest.mark.asyncio
 async def test_rewrite_failure_opens_cooldown(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = 0

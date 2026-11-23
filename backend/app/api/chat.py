@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
@@ -65,36 +66,45 @@ async def _persist(
     from_cache: bool,
     question: str,
 ) -> str:
-    async with SessionLocal() as db:
-        message = await db.get(Message, assistant_id)
-        if message is not None:
-            message.content = answer
-            message.status = status_value
-            message.prompt_tokens, message.completion_tokens = usage_dict(usage)
-            message.first_token_ms = first_token_ms
-            message.latency_ms = latency_ms
-            message.from_cache = 1 if from_cache else 0
-            for item in citations:
-                db.add(MessageCitation(message_id=assistant_id, **item))
-        conv = await db.get(Conversation, conversation_id)
-        if conv is not None:
-            conv.updated_at = utcnow()
-            if title_needed(conv.title):
-                conv.title = question.strip()[:20] or "新会话"
-        db.add(
-            LlmCall(
-                user_id=None,
-                conversation_id=conversation_id,
-                purpose="chat",
-                model=settings.qwen_chat_model,
-                prompt_tokens=usage.get("prompt_tokens", 0),
-                completion_tokens=usage.get("completion_tokens", 0),
-                latency_ms=latency_ms,
-                status=status_value,
-            )
-        )
-        await db.commit()
-        return conv.title if conv is not None else ""
+    last: Exception | None = None
+    for attempt in range(2):
+        try:
+            async with SessionLocal() as db:
+                message = await db.get(Message, assistant_id)
+                if message is not None:
+                    message.content = answer
+                    message.status = status_value
+                    message.prompt_tokens, message.completion_tokens = usage_dict(usage)
+                    message.first_token_ms = first_token_ms
+                    message.latency_ms = latency_ms
+                    message.from_cache = 1 if from_cache else 0
+                    for item in citations:
+                        db.add(MessageCitation(message_id=assistant_id, **item))
+                conv = await db.get(Conversation, conversation_id)
+                if conv is not None:
+                    conv.updated_at = utcnow()
+                    if title_needed(conv.title):
+                        conv.title = question.strip()[:20] or "新会话"
+                db.add(
+                    LlmCall(
+                        user_id=None,
+                        conversation_id=conversation_id,
+                        purpose="chat",
+                        model=settings.qwen_chat_model,
+                        prompt_tokens=usage.get("prompt_tokens", 0),
+                        completion_tokens=usage.get("completion_tokens", 0),
+                        latency_ms=latency_ms,
+                        status=status_value,
+                    )
+                )
+                await db.commit()
+                return conv.title if conv is not None else ""
+        except OperationalError as exc:
+            # Windows 上 WAL/SHM 偶尔被占用，重试一次比整条回答丢掉划算
+            last = exc
+            await asyncio.sleep(0.15 * (attempt + 1))
+    assert last is not None
+    raise last
 
 
 @router.post("/stream", summary="知识库问答（SSE 流式）")

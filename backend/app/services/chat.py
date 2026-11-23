@@ -38,10 +38,38 @@ async def load_history(db: AsyncSession, conversation_id: str, limit: int = 8) -
     return messages
 
 
+_REWRITE_HINTS = (
+    "它",
+    "这个",
+    "那个",
+    "这些",
+    "那些",
+    "该",
+    "这款",
+    "那款",
+    "上面",
+    "刚才",
+    "之前",
+    "还有",
+    "呢",
+)
+
+
+def needs_rewrite(question: str) -> bool:
+    """判断问题是否依赖上下文：只有带指代/省略的短问句才值得多花一次模型调用。"""
+    text = question.strip()
+    if len(text) >= 12 and not any(hint in text for hint in _REWRITE_HINTS):
+        return False
+    return any(hint in text for hint in _REWRITE_HINTS) or len(text) <= 8
+
+
 async def rewrite_question(question: str, history: list[dict[str, str]]) -> str:
     global _rewrite_blocked_until
 
     if not history:
+        return question
+    # 自包含的问题直接跳过，省一次调用、也避开高并发下的 429
+    if not needs_rewrite(question):
         return question
     # 上一轮刚被限流：直接跳过，别让每个请求都先等一轮重试
     if time.monotonic() < _rewrite_blocked_until:

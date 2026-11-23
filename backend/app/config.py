@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     refresh_token_days: int = 7
     admin_username: str = "admin"
     admin_password: str = "123456"
+    # 只有明确部署在反向代理后面才信任 X-Forwarded-For，否则客户端可伪造 IP 绕过限流
+    trust_proxy_headers: bool = False
 
     # 数据目录
     data_dir: Path = DATA_DIR
