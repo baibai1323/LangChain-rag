@@ -40,7 +40,8 @@ $env:PYTHONDONTWRITEBYTECODE = "1"
 
 本项目分级口径（与 `security-audit` 统一）：
 
-- `backend\app` 密度 < 30%、函数缺 docstring → **P1**；注释与实现矛盾、docstring 参数对不上 → **P0**。
+- **阻断级只看真问题**：注释与实现相反、docstring 描述与行为不符、docstring 里的参数在签名里不存在、把密钥/口令写进注释 → **P0**；`backend\app` 新增公共函数完全无 docstring 且逻辑不直观 → **P1**。
+- 扫描器报的「密度 < 30%」「函数没有 docstring」「长函数体内零注释」在本项目统一记为**提示（P2）**：只写进报告，不阻断提交。理由是本项目以 docstring 为主要说明手段，脚本按行统计 `#` 会系统性低估密度；为了过闸批量补“获取用户”这类空话注释，反而制造维护噪音。
 - `backend\tests` 密度只做参考，不单独立项；测试名写清楚即可。
 - `frontend\src` 注释不足记 **P2**：Vue 模板天然拉低密度，不阻断提交。
 - `scripts\`、`tools\` 按 20% 放宽，它们是内部工具，不对外。

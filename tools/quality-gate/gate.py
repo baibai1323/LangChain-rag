@@ -8,7 +8,7 @@
   5. 全部通过 → 退出码 0，提交继续
 
 为什么 gate 要自己跑测试：marker 是文件，谁都能手写一份。真正不能作假的是
-「现在这台机器上、这份代码，测试到底过不过」。pytest 跑一遍约 1.5–2 秒，
+「现在这台机器上、这份代码，测试到底过不过」。pytest 跑一遍约 45 秒（本项目），
 比冒「提交了一个测试是红的版本」的风险便宜得多。
 
 绕过方式只有 `git commit --no-verify`，这是 git 自身行为，我们不阻止，
@@ -73,7 +73,8 @@ def run_pytest(root: Path) -> tuple[bool, str, str]:
     加 PYTHONDONTWRITEBYTECODE，避免在仓库里留 __pycache__ 影响工作区哈希。
     """
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
-    cmd = [sys.executable, "-m", "pytest", TESTS_DIR, "-q", "-p", "no:cacheprovider"]
+    # 不再额外加 -q：pytest.ini 的 addopts 已经带了 -q，再叠一个会变成 -qq 把结果摘要吞掉
+    cmd = [sys.executable, "-m", "pytest", TESTS_DIR, "-p", "no:cacheprovider"]
 
     proc = subprocess.run(
         cmd,
@@ -92,6 +93,7 @@ def run_pytest(root: Path) -> tuple[bool, str, str]:
 
 
 def main() -> int:
+    """按「凭证 → 实跑测试 → 质量结论」顺序判定，全部通过才返回 0。"""
     _ensure_stream_safe()
     root = repo_root()
     current = tree_hash(root)
