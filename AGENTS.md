@@ -18,7 +18,7 @@
 | 前端 | Vue 3 + TS + Vite + Element Plus，源码 `frontend/src`，构建产物 `frontend/dist` |
 | 解释器 | `.venv\Scripts\python.exe`（Python 3.14.5） |
 | 启动 | `start.bat`（需要 `.env` 里有 `DASHSCOPE_API_KEY`） |
-| 测试 | `.\.venv\Scripts\python.exe -m pytest backend\tests -q` |
+| 测试 | `.\.venv\Scripts\python.exe -m pytest backend\tests`（`pytest.ini` 已带 `-q`，别再叠） |
 | 提交 | 走 `agents/gitcommit-agent/AGENT.md` 的链路：tester + quality-engineer 凭证 → pre-commit 门禁 |
 
 ## 硬约束
@@ -31,6 +31,6 @@
 
 ## 技能与代理
 
-- 项目技能在 `.dsh/skills/`：`unit-test-rag`、`security-audit`、`check_comments`、`git-save`。
+- 项目技能在 `.dsh/skills/`：`unit-test-rag`、`security-audit`、`check-comments`、`git-save`。
 - 子代理说明书在 `agents/`：`tester`、`quality-engineer`、`gitcommit-agent`。
 - 两者都不是自动执行的，需要在会话里显式加载/派发。

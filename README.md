@@ -177,6 +177,24 @@ start.bat
   - 变异验证：把 `backend/app/rag/tokens.py` 的正则改回旧版后，`test_tokens_keeps_product_model_numbers` 与 `test_build_fts_query_quotes_every_term_and_joins_with_or` 立即失败，恢复后全绿。
   - 未覆盖：`api/chat.py`、`services/ingest.py`、`rag/vectorstore.py` 依赖真实 LLM / Chroma，留给集成测试。
   - 测试规范见项目内技能 [`.dsh/skills/unit-test-rag/SKILL.md`](.dsh/skills/unit-test-rag/SKILL.md)。
+
+### 工程化配套：技能 / 子代理 / 提交门禁
+
+从 `dsh-work` 迁入并按本项目口径改造，均落在仓库内，不依赖外部目录：
+
+| 类型 | 位置 | 用途 |
+|---|---|---|
+| 技能 | `.dsh/skills/unit-test-rag/` | 本项目的测试矩阵、路由模板、假 LLM/向量库配方、Windows 沙箱坑 |
+| 技能 | `.dsh/skills/security-audit/` | 安全扫描脚本 + 本项目重点与已接受例外 |
+| 技能 | `.dsh/skills/check-comments/` | 注释质量扫描；密度与缺 docstring 记 P2，不阻断 |
+| 技能 | `.dsh/skills/git-save/` | 安全提交：看 diff、排除敏感文件、走门禁 |
+| 子代理 | `agents/tester/` | 补测试、跑全量、写 tester 凭证 |
+| 子代理 | `agents/quality-engineer/` | 安全/注释/测试/卫生四维审查，出报告并写凭证 |
+| 子代理 | `agents/gitcommit-agent/` | 按规范提交并处理 hook 拒绝 |
+| 门禁 | `tools/quality-gate/` | pre-commit 校验凭证 + 亲自跑 pytest，P0/P1 不为 0 就拦 |
+
+首次启用门禁：`python tools/quality-gate/install_hooks.py`（已安装到 `.git/hooks/pre-commit`）。
+门禁的日常链路是：`tester` 跑测试写凭证 → `quality-engineer` 审查写凭证 → `git commit` 自动校验；凭证放在 `.git/quality-gate/`，代码一改就失效。
 - **演示数据**：2 个知识库、8 篇商品资料全部入库成功（5 + 3 篇，共 17 个切片）。
 - **检索质量**（数码家电知识库）：
   - “星耀 X50 支持卫星通信吗？” → 命中《星耀 X50 5G 手机商品详情》第 1 位。

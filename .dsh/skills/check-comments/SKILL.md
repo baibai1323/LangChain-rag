@@ -1,9 +1,9 @@
 ---
-name: check_comments
+name: check-comments
 description: 代码注释质量检查——注释密度是否达标（每 10 行有效代码至少 3 行注释）、注释与代码是否一致、代码能否让新手读懂。可用于任何项目的代码审查，也可按标准补注释。
 ---
 
-# check_comments · 注释质量检查
+# check-comments · 注释质量检查
 
 三条验收标准，缺一条都算不合格：
 
@@ -19,15 +19,15 @@ description: 代码注释质量检查——注释密度是否达标（每 10 行
 
 ## 1. 先跑脚本（数量）
 
-脚本：`.dsh/skills/check_comments/scripts/check_comments.py`
-绝对路径：`D:\lanchain rag项目\.dsh\skills\check_comments\scripts\check_comments.py`
+脚本：`.dsh/skills/check-comments/scripts/check_comments.py`
+绝对路径：`D:\lanchain rag项目\.dsh\skills\check-comments\scripts\check_comments.py`
 
 ```powershell
 chcp 65001 | Out-Null                      # 不加这行，中文在控制台是乱码
 $env:PYTHONIOENCODING = "utf-8"
 $env:PYTHONDONTWRITEBYTECODE = "1"
 
-& ".\.venv\Scripts\python.exe" ".dsh\skills\check_comments\scripts\check_comments.py" <文件或目录> [--min-ratio=0.3] [--json]
+& ".\.venv\Scripts\python.exe" ".dsh\skills\check-comments\scripts\check_comments.py" <文件或目录> [--min-ratio=0.3] [--json]
 ```
 
 本项目建议的体检范围（按优先级）：

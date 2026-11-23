@@ -18,10 +18,10 @@ description: 代码质量工程师——从安全、注释、测试健康度、�
 
 ## 一、先读技能文档
 
-优先用 `skill` 工具加载 `security-audit` 与 `check_comments`；加载不到就用 `read`：
+优先用 `skill` 工具加载 `security-audit` 与 `check-comments`；加载不到就用 `read`：
 
 1. `.dsh/skills/security-audit/SKILL.md` —— 四类目标、人工必查 8 项 + 本项目 8 个重点、定级标准、已接受例外
-2. `.dsh/skills/check_comments/SKILL.md` —— 三维度标准、一致性六种翻车、可读性 8 条 rubric、P0/P1/P2 分级
+2. `.dsh/skills/check-comments/SKILL.md` —— 三维度标准、一致性六种翻车、可读性 8 条 rubric、P0/P1/P2 分级
 
 读完再动手，不要凭印象审。
 
@@ -31,7 +31,7 @@ description: 代码质量工程师——从安全、注释、测试健康度、�
 |---|---|
 | 解释器 | `.venv\Scripts\python.exe`（Python 3.14.5） |
 | 安全扫描器 | `.dsh\skills\security-audit\scripts\security_scan.py` |
-| 注释检查器 | `.dsh\skills\check_comments\scripts\check_comments.py` |
+| 注释检查器 | `.dsh\skills\check-comments\scripts\check_comments.py` |
 | 只读护栏 | `agents\quality-engineer\guard.py`（快照/比对/还原） |
 | 中文输出 | 先 `chcp 65001`、设 `PYTHONIOENCODING=utf-8`，否则乱码 |
 | 报告落盘 | `docs\reports\quality-rag-<日期>.md` |
@@ -65,7 +65,7 @@ $py = ".\.venv\Scripts\python.exe"
 & $py ".dsh\skills\security-audit\scripts\security_scan.py" "backend\app"
 
 # 注释
-& $py ".dsh\skills\check_comments\scripts\check_comments.py" "backend\app"
+& $py ".dsh\skills\check-comments\scripts\check_comments.py" "backend\app"
 ```
 
 两个脚本的退出码 1 = 有 P0/P1，**不是脚本坏了**，是查出了问题。前端与脚本目录可以再扫一遍，但前端注释不足只记 P2。
@@ -118,7 +118,7 @@ $py = ".\.venv\Scripts\python.exe"
 | **P1** | 应修：明显缺陷，影响可维护性或正确性 | `backend\app` 公共函数无 docstring 且逻辑不直观、核心路径零测试、吞异常、错误信息泄露内部路径 |
 | **P2** | 建议：风格与加固 | 注释密度不足、函数缺 docstring（一般情况）、魔法数字、缺日志、前端注释少 |
 
-> **本项目注释口径**：`check_comments.py` 报的“密度 < 30% / 函数没有 docstring / 长函数体内零注释”一律记 **P2**，写进报告但不阻断。依据见 `.dsh/skills/check_comments/SKILL.md` §1：本项目以 docstring 为说明手段，脚本按 `#` 行算密度会系统性低估；为过闸批量补空话注释反而有害。只有“注释与实现矛盾、参数对不上”才是 P0。
+> **本项目注释口径**：`check_comments.py` 报的“密度 < 30% / 函数没有 docstring / 长函数体内零注释”一律记 **P2**，写进报告但不阻断。依据见 `.dsh/skills/check-comments/SKILL.md` §1：本项目以 docstring 为说明手段，脚本按 `#` 行算密度会系统性低估；为过闸批量补空话注释反而有害。只有“注释与实现矛盾、参数对不上”才是 P0。
 
 **同一条问题只报一次**。如果它既是安全问题又是注释问题，归到影响更大的那一维，另一维写"见安全第 N 条"。
 

@@ -9,7 +9,7 @@ DSH 没有「agent 配置目录」这种机制：`~/.dsh` 下只有 `skills/`，
 | 名字 | 目录 | 干什么 |
 |---|---|---|
 | tester | `agents/tester/AGENT.md` | 用 `unit-test-rag` 技能给 RAG 后端写/跑 pytest，产出覆盖率与 bug 清单 |
-| quality-engineer | `agents/quality-engineer/AGENT.md` | 用 `security-audit` + `check_comments` 技能，从安全/注释/测试健康度/工程卫生四维审查，产出分级报告 |
+| quality-engineer | `agents/quality-engineer/AGENT.md` | 用 `security-audit` + `check-comments` 技能，从安全/注释/测试健康度/工程卫生四维审查，产出分级报告 |
 | gitcommit-agent | `agents/gitcommit-agent/AGENT.md` | 提交前的编排者：并行派 tester 与 quality-engineer，核对两份凭证，通过后按 `git-save` 提交 |
 
 ## 一条完整链路
